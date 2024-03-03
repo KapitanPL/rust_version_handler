@@ -20,32 +20,19 @@ version_regexs = [\
 
 year_regex = re.compile(r'(\D|^)20\d{2}(\D|$)')
 
-sorted_versions = {}
+year_based_versions = []
+version_based = []
 
 for ver in versions:
-    for regex in version_regexs:    
-        match = regex.match(ver)
-        if(match):
-            if regex.pattern not in sorted_versions.keys():
-                sorted_versions[regex.pattern] = []
-            sorted_versions[regex.pattern].append(ver)
-            break
-            # print(f"{match.group(1)}:{match.group(2)}:{match.group(2)}")
+    if year_regex.match(ver):
+        year_based_versions.append(ver)
+    else:
+        version_based.append(ver)
 
-total_versions = len(versions)
-
-for pattern in sorted_versions.keys():
-    count_for_pattern = len(sorted_versions[pattern])
-    eg_string = sorted_versions[pattern][0] if count_for_pattern > 0 else ""
-    print(f"{eg_string} --- {pattern}: {count_for_pattern}")
-    for already_sorted in sorted_versions[pattern]:
-        versions.remove(already_sorted)
 
 def printContidion(version: str):
     return True
 
-for vers in versions:
+for vers in year_based_versions:
     if printContidion(vers):
         print(vers)
-
-print(f"{total_versions}/{len(versions)}")
