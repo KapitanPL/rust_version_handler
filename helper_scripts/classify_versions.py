@@ -27,12 +27,10 @@ for ver in versions:
     if year_regex.match(ver):
         year_based_versions.append(ver)
     else:
+        if '202' in ver:
+            print(f"why? {ver}")
         version_based.append(ver)
 
 
 def printContidion(version: str):
     return True
-
-for vers in year_based_versions:
-    if printContidion(vers):
-        print(vers)
