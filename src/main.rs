@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ops::Index;
 
 mod regex_checker;
 use regex_checker::RegexChecker;
@@ -8,9 +9,102 @@ use std::io::{self, BufRead};
 use std::collections::HashSet;
 use std::path::Path;
 
-struct DateHandler{}
+const MONTH_ABBREVIATIONS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
-struct NumbersHandler{}
+const UPPER_YEAR_BOUND: i32 = 2040;
+const LOWER_YEAR_BOUND: i32 = 2000;
+
+const LOWER_MONTH_BOUND: i32 = 1;
+
+struct DateHandler{
+    year: i32,
+    month: i32,
+    day: i32,
+    separator: String,
+    year_first: bool,
+    month_as_string: bool
+}
+
+impl DateHandler{
+    fn new(date_string: &str)->Option<DateHandler>{
+
+        let numeric_year_first_regex = RegexChecker::new(r"^(20\d{2})([\.-])(\d{1,2})[\.-](\d{1,2})$");
+        let mixex_year_first_regex = RegexChecker::new(r"^(20\d{2})(-)([A-z]{3})-(\d{1,2})$");
+        let numeric_year_last_regex = RegexChecker::new(r"^(\d{1,2})(-)(\d{1,2})-(20\d{2}))$");
+
+        let mut year;
+        let mut month;
+        let mut day;
+        let mut separator;
+        let mut year_first;
+        let mut month_as_string;
+        if numeric_year_last_regex.is_match(date_string)
+        {
+            let captures = numeric_year_first_regex.get_captures(date_string);
+            year = captures.get(4).unwrap().parse::<i32>().unwrap();
+            month = captures.get(3).unwrap().parse::<i32>().unwrap();
+            separator = captures.get(2).unwrap();
+            day = captures.get(1).unwrap().parse::<i32>().unwrap();
+            year_first = false;
+            month_as_string = false;
+        }
+        else if  numeric_year_first_regex.is_match(date_string) {
+            let captures = numeric_year_first_regex.get_captures(date_string);
+            year = captures.get(1).unwrap().parse::<i32>().unwrap();
+            separator = captures.get(2).unwrap();
+            month = captures.get(3).unwrap().parse::<i32>().unwrap();
+            day = captures.get(4).unwrap().parse::<i32>().unwrap();
+            year_first = true;
+            month_as_string = false;
+        }
+        else if mixex_year_first_regex.is_match(date_string) {
+            let captures = mixex_year_first_regex.get_captures(date_string);
+            year = captures.get(1).unwrap().parse::<i32>().unwrap();
+            separator = captures.get(2).unwrap();
+            month = Self::parse_month_string(captures.get(3).unwrap());
+            day = captures.get(4).unwrap().parse::<i32>().unwrap();
+            year_first = true;
+            month_as_string = true;
+        }
+        Some(DateHandler{
+            year: year,
+            month: month,
+            day: day,
+            separator: separator.clone(),
+            year_first: year_first,
+            month_as_string: month_as_string
+        })
+    }
+
+    fn parse_month_string(month: &str)->i32
+    {
+        let index = MONTH_ABBREVIATIONS.iter().position(|&m| m.eq_ignore_ascii_case(month));
+        if index.is_some()
+        {
+            return index.unwrap() as i32;
+        }
+        return -1;
+    }
+
+    fn check_year_valid(year: i32)->bool{
+        return year > LOWER_YEAR_BOUND && year < UPPER_YEAR_BOUND;
+    }
+}
+
+struct NumbersHandler{
+    major: i32,
+    minor: i32,
+    patch: i32
+}
+
+impl NumbersHandler{
+    fn new(version: &str)->NumbersHandler{
+
+    }
+}
 
 enum MainVersion {
     Date(DateHandler),
@@ -40,7 +134,11 @@ impl Versionhandler{
             if splitted_version.len() == 3{
                 return Some(Versionhandler{
                     prefix : splitted_version.get(0).cloned(),
-                    version: if use_number_based_handler {MainVersion::Version(NumbersHandler{})} else { MainVersion::Date(DateHandler{})},
+                    version: if use_number_based_handler {
+                            MainVersion::Version(NumbersHandler::new(splitted_version.get(1).cloned().unwrap().as_str()))
+                        } else { 
+                            MainVersion::Date(DateHandler{})
+                        },
                     sufix: splitted_version.get(2).cloned()
                 });
             }
